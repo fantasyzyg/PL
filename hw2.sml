@@ -96,7 +96,10 @@ fun card_value card =
 
 
 
-(* 这不就是我们想要的吗？ *)	      
+(* 这不就是我们想要的吗?,只是去除第一个找到的 
+  虽然递归一般来说是先求值后面的结果，再依次回退，但是我们可以设置一些if else 条件中途就截止 
+  突然想到这个不就是平时我在做的事情吗？难道就是因为这可能是一个中途结束的递归我就反应不过来了吗？
+  还是因为之前的思想禁锢了，没有反应过来？ *)
 fun remove_card (cs, c, e) =
     case cs of
 	[] => raise e
@@ -110,9 +113,7 @@ fun all_same_color cs =
 	[] => true
       | [_] => true
       | a::b::c => (* at least two element *)
-	if card_color(a)=card_color(b) andalso all_same_color(b::c)
-	then true
-	else false
+	 card_color(a)=card_color(b) andalso all_same_color(b::c)
 		 
 				    
 fun sum_cards cs =
@@ -134,4 +135,20 @@ fun score (cs, goal) =
 	if all_same_color cs
 	then s div 2
 	else s
+    end
+
+
+fun officiate (cs, ms, goal) =
+    let
+ 	fun continue (cs, hs, ms, goal) =
+	    case ms of
+		[] => score (hs, goal)
+	      | Draw::ms'=>(case cs of
+				[] => score (hs, goal)
+			      | card::cs' => if sum_cards (card::hs) > goal
+					     then score (card::hs, goal)
+					     else continue (cs', card::hs, ms', goal))
+	      | (Discard c)::ms' => continue (cs, remove_card(hs, c, IllegalMove), ms', goal)
+    in
+	continue (cs, [], ms, goal)
     end
