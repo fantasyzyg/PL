@@ -85,3 +85,59 @@ fun all_answers f xs =
 	helper ([], xs)
     end
 
+val rev_string = String.implode o List.rev o String.explode
+
+fun count_wildcards p = g (fn () => 1) (fn x => 0) p
+    
+
+fun count_wild_and_variable_lengths p =
+    g (fn () => 1) (fn x => String.size x) p
+      
+			  
+fun count_some_var (s, p) =
+    g (fn () => 0) (fn x => if x=s then 1 else 0) p
+
+fun check_pat p =
+    let
+	fun helper1 p =
+	    case p of
+		TupleP ps =>List.foldl (fn (a,b) => (helper1 a)@b) [] ps
+				(* 这里可以替换成 List.foldl (fn (a,b) => (helper1 a)@b)  [] ps *)
+	      | Variable s => [s]
+	      | ConstructorP(_,p) => helper1 p
+	      | _ => []
+			 
+	fun helper2 lst =
+	    case lst of
+		[] => true
+	      | x::xs' => (not (List.exists (fn s => x=s) xs')) andalso (helper2 xs')
+
+    in
+	helper2 (helper1 p)
+    end
+	
+
+fun match (v, p) =
+    case (v,p) of
+	(_, Wildcard) => SOME []
+      | (_, Variable s) => SOME [(s,v)]
+      | (Unit, UnitP) => SOME []
+      | (Const a, ConstP b) => if a=b then SOME [] else NONE
+      | (Tuple vs, TupleP ps) => if (length vs = length ps)
+				 then all_answers match (ListPair.zip(vs,ps))
+				 else NONE
+      | (Constructor(s2,v'), ConstructorP(s1,p')) => if s1=s2
+						     then match(v',p')
+						     else NONE
+      | _ => NONE
+
+
+fun first_match v  ps  =
+    SOME(first_answer (fn x=>match(v,x)) ps) handle NoAnswer => NONE
+	    
+      
+fun reduce f acc xs =
+    case xs of
+	[] => acc
+      | x::xs' => reduce f (f(x,acc)) xs'
+			 
